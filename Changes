@@ -1,5 +1,8 @@
 Revision history for Perl extension Test::Mock::Net::SNMP.
 
+1.02  Fri Apr 12 12:29:00 2013
+    - fixed PREREQ_PM to include Readonly pre-requisite
+
 1.01  Mon Apr 08 23:16:12 2013
     - first iteration of the Module
 

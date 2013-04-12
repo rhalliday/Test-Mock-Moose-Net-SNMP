@@ -15,7 +15,7 @@ Readonly::Scalar my $DEFAULT_MSG_SIZE     => 1_472;
 Readonly::Scalar my $DEFAULT_TIMEOUT      => 5.0;
 Readonly::Scalar my $NEGATIVE_ONE         => -1;
 
-our $VERSION = '1.01';
+our $VERSION = '1.02';
 
 =pod
 

@@ -8,7 +8,7 @@ use File::Spec::Functions qw(catdir);
 
 use lib catdir(dirname($Bin), 'lib');
 
-use Test::More tests => 17;
+use Test::More tests => 24;
 use Test::Exception;
 
 use Test::Mock::Net::SNMP;
@@ -72,6 +72,13 @@ is(
 );
 $mock_net_snmp->reset_values();
 
+# check that the set error message is used error
+$mock_net_snmp->set_error('my error');
+$snmp->inform_request(-varbindlist => ['1.2.2']);
+is($snmp->error(), 'my error',
+    'error message is the one we specified when inform_request is sent less than 6 elements');
+$mock_net_snmp->reset_values();
+
 ok(
     !defined $snmp->inform_request(
         -varbindlist => [ '1.2.2', OCTET_STRING, 'blah', '1.2.4', OCTET_STRING, 'blah4', '1.2.3' ]),
@@ -82,6 +89,11 @@ is(
     q{-varbindlist expects multiples of 3 in call to inform_request},
     q{correct error message for non multiples of 3}
 );
+$mock_net_snmp->reset_values();
+
+$mock_net_snmp->set_error('my error2');
+$snmp->inform_request(-varbindlist => [ '1.2.2', OCTET_STRING, 'blah', '1.2.4', OCTET_STRING, 'blah4', '1.2.3' ]);
+is($snmp->error(), q{my error2}, q{set error message used for non multiples of 3});
 $mock_net_snmp->reset_values();
 
 ok(
@@ -95,7 +107,26 @@ is(
     q{inform_request: Wrong oids found in sysUpTime and snmpTrapOID spaces},
     q{correct error message for non arguments that don't start with the correct oids}
 );
+$mock_net_snmp->reset_values();
 
+ok(
+    !defined $snmp->inform_request(
+        Varbindlist => [ '1.3.6.1.2.1.1.3.0', TIMETICKS, 600, '1.2.4', OCTET_STRING, 'blah4', '1.2.3', INTEGER, 3 ]
+    ),
+    q{inform_request returns undef when the second of the first two oids is incorrect}
+);
+is(
+    $snmp->error(),
+    q{inform_request: Wrong oids found in sysUpTime and snmpTrapOID spaces},
+    q{correct error message for arguments that only have some of the correct oids}
+);
+$mock_net_snmp->reset_values();
+
+$mock_net_snmp->set_error('my error3');
+$snmp->inform_request(
+    -varbindlist => [ '1.2.2', OCTET_STRING, 'blah', '1.2.4', OCTET_STRING, 'blah4', '1.2.3', INTEGER, 3 ]);
+is($snmp->error(), q{my error3},
+    q{set error message returned for non arguments that don't start with the correct oids});
 $mock_net_snmp->reset_values();
 
 # no more elements in varbindlist
@@ -104,6 +135,15 @@ ok(
     'inform_request returns undef if there are no more elements'
 );
 is($snmp->error(), 'No more elements in varbindlist!', 'inform_request no more elements error set correctly');
+$mock_net_snmp->reset_values();
+
+$mock_net_snmp->set_error('my error3');
+$snmp->inform_request(-varbindlist => $set_val);
+is($snmp->error(), 'my error3', 'inform_request no more elements error set correctly');
+$mock_net_snmp->reset_values();
+
+is($mock_net_snmp->_process_trap_varbindlist('inform_request', test => 1),
+    0, 'internal call to _process_trap_varbindlist with no varbindlist option returns an error');
 
 sub getr_callback {
     my ($session, $or_ref) = @_;

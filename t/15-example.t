@@ -115,7 +115,7 @@ is($mock_net_snmp->get_num_method_calls('get_request'), 3, q{Example4 calls get_
 SKIP: {
     eval { require Test::Exception; Test::Exception->import };
 
-    skip "Test::Exception not installed", 7 if $@;
+    skip "Test::Exception not installed", 2 if $@;
 
     $mock_net_snmp->set_session_failure();
     dies_ok(sub { Example::example1() }, q{Example1 dies with session failure});

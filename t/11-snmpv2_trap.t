@@ -8,7 +8,7 @@ use File::Spec::Functions qw(catdir);
 
 use lib catdir(dirname($Bin), 'lib');
 
-use Test::More tests => 13;
+use Test::More tests => 16;
 use Test::Exception;
 
 use Test::Mock::Net::SNMP;
@@ -30,6 +30,10 @@ my $snmp = Net::SNMP->session(-hostname => 'blah', -community => 'blah');
 ok($snmp->snmpv2_trap(-varbindlist => $set_val), 'can call snmpv2_trap in blocking mode');
 is_deeply($mock_net_snmp->get_option_val('snmpv2_trap', '-varbindlist'),
     $set_val, 'mock object stores varbindlist for snmpv2_trap');
+
+ok($snmp->snmpv2_trap(Varbindlist => $set_val), 'can call snmpv2_trap in blocking mode with title case options');
+is_deeply($mock_net_snmp->get_option_val('snmpv2_trap', 'Varbindlist'),
+    $set_val, 'mock object stores varbindlist for snmpv2_trap with title case option');
 
 # non-blocking mode
 ok($snmp->snmpv2_trap(-delay => 60, -varbindlist => $set_val), 'calling snmpv2_trap in non-blocking mode returns true');
@@ -82,3 +86,9 @@ is(
 
 $mock_net_snmp->reset_values();
 
+$mock_net_snmp->set_trap_failure();
+ok(
+    !defined $snmp->snmpv2_trap(-varbindlist => $set_val),
+    q{snmpv2_trap returns undef when set_trap_failure has been called}
+);
+$mock_net_snmp->reset_values();

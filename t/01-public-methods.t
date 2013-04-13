@@ -8,8 +8,7 @@ use File::Spec::Functions qw(catdir);
 
 use lib catdir(dirname($Bin), 'lib');
 
-use Test::More tests => 26;
-use Test::Exception;
+use Test::More tests => 31;
 
 BEGIN { use_ok('Test::Mock::Net::SNMP') }
 
@@ -66,11 +65,13 @@ ok($obj->set_session_failure(), 'can set session failure');
 is($obj->{session_failure}, 1, 'session failure has been set');
 is($obj->{net_snmp}->session(-hostname => 'blah'), undef, 'session failure causes mocked session method to fail');
 is($obj->get_option_val('session', '-hostname'), 'blah', 'object still captures session options despite failure');
-dies_ok(sub { $obj->get_option_val('made',    'up') },       'get_option_val dies with unknown method');
-dies_ok(sub { $obj->get_option_val('session', 'variable') }, 'get_option_val dies with unset variable');
+is($obj->get_num_method_calls('session'),
+    1, q{call to get_num_method_calls returns 1 for session method calls});
 ok($obj->set_error('This is an error'), 'can set error');
 is($obj->{error},             'This is an error', 'object stores error internally');
 is($obj->{net_snmp}->error(), 'This is an error', 'mocked error method returns error message');
+is($obj->clear_error(),       q{},                'can clear errors');
+is($obj->{error},             q{},                'clear error, clears error');
 ok($obj->set_error_status(1), 'can set error status');
 is($obj->{error_status},             1, 'object stores error status internally');
 is($obj->{net_snmp}->error_status(), 1, 'mocked method returns objects error status');
@@ -80,3 +81,16 @@ is($obj->{net_snmp}->error_index(), 1, 'mocked method returns objects error inde
 ok($obj->reset_values(),            'can reset values');
 ok(exists $obj->{net_snmp},         'reset values does not get rid of mocked object');
 ok(!exists $obj->{session_failure}, 'reset values only leaves the mocked object');
+is($obj->get_num_method_calls('get_request'),
+    0, q{call to get_num_method_calls returns 0 if there were no method calls});
+
+SKIP: {
+    eval { require Test::Exception; Test::Exception->import };
+
+    skip "Test::Exception not installed", 3 if $@;
+    $obj->{net_snmp}->session(-hostname => 'blah');
+    dies_ok(sub { $obj->get_option_val('made',    'up') },       'get_option_val dies with unknown method');
+    dies_ok(sub { $obj->get_option_val('session', 'variable') }, 'get_option_val dies with unset session variable');
+    $obj->{net_snmp}->get_request(-varbindlist => ['1.2.1']);
+    dies_ok(sub { $obj->get_option_val('get_request', 'stuff') }, 'get_option_val dies with unset variable');
+}

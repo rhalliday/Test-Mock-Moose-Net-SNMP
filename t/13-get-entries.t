@@ -8,7 +8,7 @@ use File::Spec::Functions qw(catdir);
 
 use lib catdir(dirname($Bin), 'lib');
 
-use Test::More tests => 11;
+use Test::More tests => 16;
 use Test::Exception;
 
 use Test::Mock::Net::SNMP;
@@ -20,6 +20,7 @@ my $mock_net_snmp = Test::Mock::Net::SNMP->new();
 $mock_net_snmp->set_varbindlist(
     [
         { '1.2.1.1' => 'test', '1.2.1.2' => 'test2', '1.2.1.3' => 'test3' },
+        { '1.2.2.1' => 'tset', '1.2.2.2' => 'tset2', '1.2.2.3' => 'tset3' },
         { '1.2.2.1' => 'tset', '1.2.2.2' => 'tset2', '1.2.2.3' => 'tset3' }
     ]
 );
@@ -48,9 +49,24 @@ is_deeply($mock_net_snmp->get_option_val('get_entries', '-columns'),
 is_deeply($mock_net_snmp->get_option_val('get_entries', '-delay'),
     60, 'mock object stores delay in non-blocking mode for get_entries');
 
+ok(
+    $snmp->get_entries(Callback => [ \&getr_callback, \$oid_result ], Delay => 60, Columns => $columns),
+    'calling get_entries in non-blocking mode returns true with title case options'
+);
+is($oid_result, 'tset', q{get_entries in non-blocking mode calls the call back with title case options});
+is_deeply($mock_net_snmp->get_option_val('get_entries', 'Columns'),
+    $columns, 'mock object stores varbindlist in non-blocking mode for get_entries with title case options');
+is_deeply($mock_net_snmp->get_option_val('get_entries', 'Delay'),
+    60, 'mock object stores delay in non-blocking mode for get_entries with title case options');
+
 # check an error is created if there is no varbindlist
 ok(!defined $snmp->get_entries(-delay => 60), 'calling get_entries without columns returns undefined');
 is($snmp->error(), '-columns not passed in to get_entries', 'get_entries error message set to what we expect');
+$mock_net_snmp->reset_values();
+
+$mock_net_snmp->set_error('my error');
+$snmp->get_entries(-delay => 60);
+is($snmp->error(), 'my error', 'get_entries error message set to the error passed in');
 $mock_net_snmp->reset_values();
 
 # no more elements in varbindlist

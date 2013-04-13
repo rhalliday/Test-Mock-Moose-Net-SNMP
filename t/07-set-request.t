@@ -8,7 +8,7 @@ use File::Spec::Functions qw(catdir);
 
 use lib catdir(dirname($Bin), 'lib');
 
-use Test::More tests => 13;
+use Test::More tests => 18;
 use Test::Exception;
 
 use Test::Mock::Net::SNMP;
@@ -20,6 +20,7 @@ my $mock_net_snmp = Test::Mock::Net::SNMP->new();
 $mock_net_snmp->set_varbindlist(
     [
         { '1.2.1.1' => 'test', '1.2.1.2' => 'test2', '1.2.1.3' => 'test3' },
+        { '1.2.2.1' => 'tset', '1.2.2.2' => 'tset2', '1.2.2.3' => 'tset3' },
         { '1.2.2.1' => 'tset', '1.2.2.2' => 'tset2', '1.2.2.3' => 'tset3' }
     ]
 );
@@ -47,6 +48,14 @@ is_deeply($mock_net_snmp->get_option_val('set_request', '-varbindlist'),
     $set_val, 'mock object stores varbindlist in non-blocking mode');
 is_deeply($mock_net_snmp->get_option_val('set_request', '-delay'), 60, 'mock object stores delay in non-blocking mode');
 
+ok($snmp->set_request(Callback => [ \&getr_callback, \$oid_result ], Delay => 60, Varbindlist => $set_val),
+    'calling set_request in non-blocking mode returns true with title case options');
+is($oid_result, 'tset', q{set_request in non-blocking mode calls the call back with title case options});
+is_deeply($mock_net_snmp->get_option_val('set_request', 'Varbindlist'),
+    $set_val, 'mock object stores Varbindlist in non-blocking mode with title case options');
+is_deeply($mock_net_snmp->get_option_val('set_request', 'Delay'),
+    60, 'mock object stores Delay in non-blocking mode with title case options');
+
 # check an error is created if there is no varbindlist
 ok(!defined $snmp->set_request(-delay => 60), 'calling set_request without varbindlist returns undefined');
 is($snmp->error(), '-varbindlist option not passed in to set_request', 'error message set to what we expect');
@@ -56,6 +65,11 @@ $mock_net_snmp->reset_values();
 ok(!defined $snmp->set_request(-varbindlist => ['1.2.2']), 'returns undef if there is the wrong number of elements');
 is($snmp->error(), '-varbindlist expects multiples of 3 in call to set_request',
     'no more elements error set correctly');
+$mock_net_snmp->reset_values();
+
+$mock_net_snmp->set_error('my error');
+$snmp->set_request(-varbindlist => ['1.2.2']);
+is($snmp->error(), 'my error', 'no more elements error set with user defined error');
 $mock_net_snmp->reset_values();
 
 # no more elements in varbindlist

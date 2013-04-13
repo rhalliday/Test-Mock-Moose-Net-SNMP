@@ -15,7 +15,7 @@ Readonly::Scalar my $DEFAULT_MSG_SIZE     => 1_472;
 Readonly::Scalar my $DEFAULT_TIMEOUT      => 5.0;
 Readonly::Scalar my $NEGATIVE_ONE         => -1;
 
-our $VERSION = '1.02';
+our $VERSION = '1.02_01';
 
 =pod
 
@@ -357,7 +357,7 @@ sub _mock_session {
             # allow for failing a call to session
             if ($self->{session_failure}) {
                 $return_val = undef;
-                $self->{error} = 'session failure' unless defined $self->{error} && $self->{error};
+                $self->{error} = 'session failure' unless $self->{error};
             } else {
                 $return_val = $self->{net_snmp};
             }
@@ -416,8 +416,7 @@ sub _process_trap_varbindlist {
         return 0;
     }
 
-    my $list = $args{-varbindlist} || $args{Varbindlist};
-    if (scalar @{$list} % $VARBINDLIST_MULTIPLE > 0) {
+    if (scalar @{$vbl} % $VARBINDLIST_MULTIPLE > 0) {
 
         # we have an incorrect number of variables
         $self->{error} = "-varbindlist expects multiples of $VARBINDLIST_MULTIPLE in call to $caller"
@@ -470,7 +469,6 @@ sub _process_callback {
         # we are blocking so return the first element of varbindlist
         return $self->_get_varbindlist();
     }
-    return 1;
 }
 
 # sets the error message appropriately and returns the value of closed
@@ -532,8 +530,8 @@ sub _mock_set_request {
             return if $self->_closed();
 
             # check varbindlist vals
-            return unless $self->_process_varbindlist('set_request', %args);
             my $list = $args{-varbindlist} || $args{Varbindlist};
+            return unless $self->_process_varbindlist('set_request', %args);
             if (scalar @{$list} % $VARBINDLIST_MULTIPLE > 0) {
 
                 # we have an incorrect number of variables
@@ -558,7 +556,7 @@ sub _mock_trap {
             push @{ $self->{trap} }, \%args;
             return if $self->_closed();
 
-            if (defined $self->{trap_error} && $self->{trap_error}) {
+            if (defined $self->{trap_error}) {
                 return;
             } else {
                 return 1;
@@ -620,7 +618,7 @@ sub _mock_snmpv2_trap {
             return unless $self->_process_varbindlist('snmpv2_trap', %args);
             return unless $self->_process_trap_varbindlist('snmpv2_trap', %args);
 
-            if (defined $self->{trap_error} && $self->{trap_error}) {
+            if (defined $self->{trap_error}) {
                 return;
             } else {
                 return 1;
@@ -757,7 +755,7 @@ sub _mock_var_bind_names {
     my ($self) = @_;
     $self->{net_snmp}->mock(
         var_bind_names => sub {
-            if (@{ $self->{varbindnames} }) {
+            if (defined $self->{varbindnames} && @{ $self->{varbindnames} }) {
                 my $names = shift @{ $self->{varbindnames} };
                 return @{$names};
             } else {
@@ -775,7 +773,7 @@ sub _mock_var_bind_types {
     my ($self) = @_;
     $self->{net_snmp}->mock(
         var_bind_types => sub {
-            if (@{ $self->{varbindtypes} }) {
+            if (defined $self->{varbindtypes} && @{ $self->{varbindtypes} }) {
                 return shift @{ $self->{varbindtypes} };
             } else {
                 $self->{error} = 'No more elements in varbindtypes!' unless $self->{error};
@@ -797,7 +795,8 @@ sub _mock_timeout {
                 $self->{timeout} = $option;
                 return $option;
             } else {
-                return $self->{timeout} || $DEFAULT_TIMEOUT;
+                $self->{timeout} = $DEFAULT_TIMEOUT unless $self->{timeout};
+                return $self->{timeout};
             }
         }
     );
@@ -843,7 +842,8 @@ sub _mock_max_msg_size {
                     return;
                 }
             } else {
-                return $self->{max_msg_size} || $DEFAULT_MSG_SIZE;
+                $self->{max_msg_size} = $DEFAULT_MSG_SIZE unless $self->{max_msg_size};
+                return $self->{max_msg_size};
             }
         }
     );

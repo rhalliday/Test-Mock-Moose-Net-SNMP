@@ -8,7 +8,7 @@ use File::Spec::Functions qw(catdir);
 
 use lib catdir(dirname($Bin), 'lib');
 
-use Test::More tests => 33;
+use Test::More tests => 44;
 
 use Test::Mock::Net::SNMP;
 use Net::SNMP;
@@ -50,12 +50,7 @@ $snmp = Net::SNMP->session(-hostname => 'blah', -version => 'snmpv2c');
 is($snmp->version(),  2,      'mocked version returns the session variable');
 is($snmp->hostname(), 'blah', 'mocked hostname returns the session variable');
 
-$mock_net_snmp->set_varbindlist(
-    [
-        { '1.2.1.1' => 'test', '1.2.1.2' => 'test2', '1.2.1.3' => 'test3' },
-        { '1.2.2.1' => 'tset', '1.2.2.2' => 'tset2', '1.2.2.3' => 'tset3' }
-    ]
-);
+$mock_net_snmp->set_varbindlist([ { '1.2.1.1' => 'test', '1.2.1.2' => 'test2', '1.2.1.3' => 'test3' }, ]);
 
 $mock_net_snmp->set_varbindtypes(
     [
@@ -69,6 +64,8 @@ is_deeply(
     { '1.2.1.1' => 'test', '1.2.1.2' => 'test2', '1.2.1.3' => 'test3' },
     'check mocked var_bind_list'
 );
+ok(!defined $snmp->var_bind_list(), q{var_bind_list empty varbindlist returns undef});
+
 my @names = $snmp->var_bind_names();
 is_deeply(\@names, [qw( 1.2.1.1 1.2.1.2 1.2.1.3 )], 'check automatically created var_bind_names');
 is_deeply(
@@ -77,7 +74,35 @@ is_deeply(
     'check var_bind_types returns'
 );
 
+$mock_net_snmp->reset_values();
+ok(!defined $snmp->var_bind_types(), q{no var_bind_types returns undef});
+is($snmp->error(), q{No more elements in varbindtypes!}, q{var_bind_types default error is set correctly});
+
+$mock_net_snmp->reset_values();
+$mock_net_snmp->{varbindtypes} = [];
+ok(!defined $snmp->var_bind_types(), q{empty var_bind_types returns undef});
+is($snmp->error(), q{No more elements in varbindtypes!}, q{emtpy var_bind_types default error is set correctly});
+
+$mock_net_snmp->reset_values();
+$mock_net_snmp->set_error('my error');
+$snmp->var_bind_types();
+is($snmp->error(), q{my error}, q{var_bind_types error is set to the message passed in});
+$mock_net_snmp->reset_values();
+
 $mock_net_snmp->set_varbindnames([ [qw( 2.2.1 2.2.3 2.2.4 )] ]);
 @names = $snmp->var_bind_names();
 is_deeply(\@names, [qw( 2.2.1 2.2.3 2.2.4 )], 'check manually created var_bind_names');
 
+$mock_net_snmp->reset_values();
+ok(!defined $snmp->var_bind_names(), q{no var_bind_names returns undef});
+is($snmp->error(), q{No more elements in varbindnames!}, q{var_bind_names default error is set correctly});
+
+$mock_net_snmp->reset_values();
+$mock_net_snmp->{varbindnames} = [];
+ok(!defined $snmp->var_bind_names(), q{empty var_bind_names returns undef});
+is($snmp->error(), q{No more elements in varbindnames!}, q{emtpy var_bind_names default error is set correctly});
+
+$mock_net_snmp->reset_values();
+$mock_net_snmp->set_error('my error');
+$snmp->var_bind_names();
+is($snmp->error(), q{my error}, q{var_bind_names error is set to the message passed in});

@@ -11,11 +11,11 @@ use lib catdir(dirname($Bin), 'lib');
 use Test::More tests => 7;
 use Test::Exception;
 
-use Test::Mock::Net::SNMP;
+use Test::Mock::Moose::Net::SNMP;
 
 use Net::SNMP;
 
-my $mock_net_snmp = Test::Mock::Net::SNMP->new();
+my $mock_net_snmp = Test::Mock::Moose::Net::SNMP->new();
 
 my $OID_sysContact = '1.3.6.1.2.1.1.4.0';
 my $set_val = [ $OID_sysContact, OCTET_STRING, 'Help Desk x911' ];

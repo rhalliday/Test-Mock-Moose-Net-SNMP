@@ -1,4 +1,7 @@
-Revision history for Perl extension Test::Mock::Net::SNMP.
+Revision history for Perl extension Test::Mock::Moose::Net::SNMP.
+
+1.03  Sat Jun 22 15:00:00 2013
+    - converted to a Moose version
 
 1.02  Fri Apr 12 12:29:00 2013
     - fixed PREREQ_PM to include Readonly pre-requisite

@@ -1,8 +1,7 @@
-package Test::Mock::Net::SNMP;
+package Test::Mock::Moose::Net::SNMP;
 
 use 5.008008;
-use strict;
-use warnings;
+use Moose;
 use Carp;
 use Readonly;
 use Test::MockObject::Extends;
@@ -23,40 +22,28 @@ our $VERSION = '1.02_01';
 
 =head1 NAME
 
-Test::Mock::Net::SNMP - Perl extension for mocking Net::SNMP in your unit tests.
+Test::Mock::Moose::Net::SNMP - Moose extension for mocking Net::SNMP in your unit tests.
 
 =head1 SYNOPSIS
 
-  use Test::Mock::Net::SNMP;
-  my $mock_snmp = Test::Mock::Net::SNMP->new();
+  use Test::Mock::Moose::Net::SNMP;
+  my $mock_snmp = Test::Mock::Moose::Net::SNMP->new();
 
 =head1 DESCRIPTION
 
-Test::Mock::Net::SNMP is a simple way to mock a Net::SNMP object and allows you 
+Test::Mock::Moose::Net::SNMP is a simple way to mock a Net::SNMP object and allows you 
 to test your modules behaviour when retrieving SNMP data or sending SNMP traps.
+
+You have to install Moose to use this, consider Test::Mock::Net::SNMP if you don't
+want Moose.
 
 =head1 METHODS
 
-=cut
-
 =head2 new
 
-my $mock_net_snmp = Test::Mock::Net::SNMP->new();
+my $mock_net_snmp = Test::Mock::Moose::Net::SNMP->new();
 
 Generates the mock object required to mock Net::SNMP
-
-=cut
-
-sub new {
-    my ($class, %args) = @_;
-
-    my $self = {};
-    bless $self, $class;
-
-    $self->_initialise();
-
-    return $self;
-}
 
 =head2 set_varbindlist
 
@@ -93,21 +80,25 @@ $mock_net_snmp->set_varbindlist(
 
 =cut
 
-sub set_varbindlist {
+has q{varbindlist} => (
+    is     => q{rw},
+    isa    => q{ArrayRef},
+    writer => q{set_varbindlist},
+);
+
+after q{set_varbindlist} => sub {
     my ($self, $vbl) = @_;
 
-    # varbindnames is just a list of the oids in vabindlist so we can build this automatically
-    # start by clearing it out
-    $self->{varbindnames} = [];
+    my $vbn = [];
     for my $lst (@{$vbl}) {
         next unless defined $lst;
         my $names = [];
         @{$names} = sort { $a cmp $b } keys %{$lst};
-        push @{ $self->{varbindnames} }, $names;
+        push @{$vbn}, $names;
     }
-    $self->{varbindlist} = $vbl;
+    $self->set_varbindnames($vbn);
     return 1;
-}
+};
 
 =head2 set_varbindnames
 
@@ -120,11 +111,11 @@ set_varbindnames takes an array reference of arrays of oids.
 
 =cut
 
-sub set_varbindnames {
-    my ($self, $vbn) = @_;
-    $self->{varbindnames} = $vbn;
-    return 1;
-}
+has q{varbindnames} => (
+    is     => q{rw},
+    isa    => q{ArrayRef},
+    writer => q{set_varbindnames},
+);
 
 =head2 set_varbindtypes
 
@@ -141,11 +132,11 @@ set_varbindtypes takes an array reference of varbindtypes
 
 =cut
 
-sub set_varbindtypes {
-    my ($self, $vbt) = @_;
-    $self->{varbindtypes} = $vbt;
-    return 1;
-}
+has q{varbindtypes} => (
+    is     => q{rw},
+    isa    => q{ArrayRef},
+    writer => q{set_varbindtypes},
+);
 
 =head2 set_session_failure
 
@@ -158,9 +149,15 @@ To revert this you need to call reset_values (see below)
 
 =cut
 
+has q{session_failure} => (
+    is  => q{rw},
+    isa => q{Int},
+);
+
 sub set_session_failure {
     my ($self) = @_;
-    return $self->{session_failure} = 1;
+    $self->session_failure(1);
+    return 1;
 }
 
 =head2 set_error
@@ -172,10 +169,20 @@ will be returned if an error occurs.
 
 =cut
 
-sub set_error {
-    my ($self, $message) = @_;
-    return $self->{error} = $message;
-}
+=head2 clear_error
+
+$mock_net_snmp->clear_error();
+
+Test::Mock::Net::SNMP will only update the error string if it hasn't already been set. This means that sometimes it is useful to clear the error string
+
+=cut
+
+has q{error} => (
+    is      => q{rw},
+    isa     => q{Str},
+    writer  => q{set_error},
+    clearer => q{clear_error},
+);
 
 =head2 set_error_status
 
@@ -185,10 +192,11 @@ This lets you set the return value of an $snmp->error_status() call.
 
 =cut
 
-sub set_error_status {
-    my ($self, $status) = @_;
-    return $self->{error_status} = $status;
-}
+has q{error_status} => (
+    is     => q{rw},
+    isa    => q{Str},
+    writer => q{set_error_status},
+);
 
 =head2 set_error_index
 
@@ -198,10 +206,11 @@ This lets you set the return value of an $snmp->error_index() call.
 
 =cut
 
-sub set_error_index {
-    my ($self, $index) = @_;
-    return $self->{error_index} = $index;
-}
+has q{error_index} => (
+    is     => q{rw},
+    isa    => q{Int},
+    writer => q{set_error_index},
+);
 
 =head2 get_option_val
 
@@ -278,19 +287,6 @@ sub reset_values {
     return 1;
 }
 
-=head2 clear_error
-
-$mock_net_snmp->clear_error();
-
-Test::Mock::Net::SNMP will only update the error string if it hasn't already been set. This means that sometimes it is useful to clear the error string
-
-=cut
-
-sub clear_error {
-    my ($self) = @_;
-    return $self->{error} = q{};
-}
-
 =head2 set_trap_failure
 
 $mock_net_snmp->set_trap_failure();
@@ -299,17 +295,28 @@ force a trap method to fail.
 
 =cut
 
+has q{trap_error} => (
+    is  => q{rw},
+    isa => q{Bool},
+);
+
 sub set_trap_failure {
     my ($self) = @_;
-    return $self->{trap_error} = 1;
+    $self->trap_error(1);
+    return 1;
 }
+
+has q{net_snmp} => (
+    is  => q{rw},
+    isa => q{T::MO::E::a},
+);
 
 # private methods go here.
 
 # set up all the mocked methods
-sub _initialise {
+sub BUILD {
     my ($self) = @_;
-    $self->{net_snmp} = Test::MockObject::Extends->new('Net::SNMP');
+    $self->net_snmp(Test::MockObject::Extends->new('Net::SNMP'));
     $self->_mock_session();    # this needs calling before any of the others
     $self->_mock_close();
     $self->_mock_snmp_dispatcher();
@@ -342,7 +349,7 @@ sub _mock_session {
     my ($self) = @_;
 
     #session() - create a new Net::SNMP object
-    $self->{net_snmp}->fake_module(
+    $self->net_snmp()->fake_module(
         'Net::SNMP',
         session => sub {
             my ($return_val);

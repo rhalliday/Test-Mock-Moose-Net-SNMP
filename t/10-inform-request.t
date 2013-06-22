@@ -11,11 +11,11 @@ use lib catdir(dirname($Bin), 'lib');
 use Test::More tests => 24;
 use Test::Exception;
 
-use Test::Mock::Net::SNMP;
+use Test::Mock::Moose::Net::SNMP;
 
 use Net::SNMP;
 
-my $mock_net_snmp = Test::Mock::Net::SNMP->new();
+my $mock_net_snmp = Test::Mock::Moose::Net::SNMP->new();
 
 $mock_net_snmp->set_varbindlist(
     [

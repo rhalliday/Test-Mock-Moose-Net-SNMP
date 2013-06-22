@@ -10,15 +10,15 @@ use lib catdir(dirname($Bin), 'lib');
 
 use Test::More tests => 31;
 
-BEGIN { use_ok('Test::Mock::Moose::Net::SNMP') }
+BEGIN { use_ok('Test::Mock::Net::SNMP') }
 
 use Net::SNMP;
 
-can_ok('Test::Mock::Moose::Net::SNMP',
+can_ok('Test::Mock::Net::SNMP',
     qw( new set_varbindlist set_varbindtypes set_session_failure set_error set_error_status set_error_index get_option_val get_num_method_calls reset_values )
 );
 
-my $obj = new_ok('Test::Mock::Moose::Net::SNMP');
+my $obj = new_ok('Test::Mock::Net::SNMP');
 
 ok(
     $obj->set_varbindlist(
@@ -65,12 +65,13 @@ ok($obj->set_session_failure(), 'can set session failure');
 is($obj->{session_failure}, 1, 'session failure has been set');
 is($obj->{net_snmp}->session(-hostname => 'blah'), undef, 'session failure causes mocked session method to fail');
 is($obj->get_option_val('session', '-hostname'), 'blah', 'object still captures session options despite failure');
-is($obj->get_num_method_calls('session'), 1, q{call to get_num_method_calls returns 1 for session method calls});
+is($obj->get_num_method_calls('session'),
+    1, q{call to get_num_method_calls returns 1 for session method calls});
 ok($obj->set_error('This is an error'), 'can set error');
-is($obj->{error},             'This is an error',  'object stores error internally');
-is($obj->{net_snmp}->error(), 'This is an error',  'mocked error method returns error message');
-is($obj->clear_error(),       q{This is an error}, 'can clear errors');
-is($obj->error(),             undef,               'clear error, clears error');
+is($obj->{error},             'This is an error', 'object stores error internally');
+is($obj->{net_snmp}->error(), 'This is an error', 'mocked error method returns error message');
+is($obj->clear_error(),       q{},                'can clear errors');
+is($obj->{error},             q{},                'clear error, clears error');
 ok($obj->set_error_status(1), 'can set error status');
 is($obj->{error_status},             1, 'object stores error status internally');
 is($obj->{net_snmp}->error_status(), 1, 'mocked method returns objects error status');

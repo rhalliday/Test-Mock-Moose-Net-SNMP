@@ -8,7 +8,7 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     NAME         => 'Test::Mock::Net::SNMP',
     VERSION_FROM => 'lib/Test/Mock/Net/SNMP.pm',    # finds $VERSION
-    PREREQ_PM => { 'Readonly' => '0', 'Net::SNMP' => 0, 'Test::MockObject::Extends' => 0 },  # e.g., Module::Name => 1.1
+    PREREQ_PM => { 'Moose' => 0, 'Readonly' => '0', 'Net::SNMP' => 0, 'Test::MockObject::Extends' => 0 },  # e.g., Module::Name => 1.1
     (
         $] >= 5.005
         ?    ## Add these new keywords supported since 5.005
